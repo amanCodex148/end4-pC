@@ -92,11 +92,14 @@ ContentPage {
         if (!match)
             return
 
+        const numericActive = Number(activePercent)
+        const safeActive = Number.isFinite(numericActive) ? numericActive : 100
+
         const rule = {
             id: id,
             name: String(appEntry.name || id),
             match: match,
-            active: Math.max(10, Math.min(100, Number(activePercent))) / 100.0,
+            active: Math.max(10, Math.min(100, safeActive)) / 100.0,
             enabled: Boolean(enabled)
         }
 
