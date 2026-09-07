@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import math
 import re
 import subprocess
 from pathlib import Path
@@ -42,10 +43,21 @@ def normalize(value: str) -> str:
     return str(value or "").strip().lower()
 
 
+def clamp_opacity(value, default):
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return default
+
+    if not math.isfinite(value):
+        return default
+
+    return max(0.10, min(1.00, value))
+
+
 def resolve_real_class(match: str, rule_id: str, clients):
     target = normalize(match)
     rule_id_normalized = normalize(rule_id)
-
     classes = []
 
     for client in clients:
@@ -96,7 +108,7 @@ def ensure_require(main_path: Path):
 
     lines = content.splitlines()
 
-    if REQUIRE_LINE in lines:
+    if any(line.strip() == REQUIRE_LINE for line in lines):
         return
 
     if content and not content.endswith("\n"):
@@ -121,16 +133,10 @@ def build_application_opacity(config_path: Path, output_path: Path):
 
     rules = decoration.get("applicationOpacityRules", [])
 
-    try:
-        inactive = max(
-            0.10,
-            min(
-                1.00,
-                float(decoration.get("inactiveOpacity", 0.75)),
-            ),
-        )
-    except (TypeError, ValueError):
-        inactive = 0.75
+    inactive = clamp_opacity(
+        decoration.get("inactiveOpacity", 0.75),
+        0.75,
+    )
 
     if not isinstance(rules, list):
         rules = []
@@ -165,16 +171,10 @@ def build_application_opacity(config_path: Path, output_path: Path):
         if not real_class:
             continue
 
-        try:
-            active = max(
-                0.10,
-                min(
-                    1.00,
-                    float(rule.get("active", 1.0)),
-                ),
-            )
-        except (TypeError, ValueError):
-            active = 1.0
+        active = clamp_opacity(
+            rule.get("active", 1.0),
+            1.0,
+        )
 
         safe_id = re.sub(
             r"[^A-Za-z0-9_-]",
@@ -232,13 +232,17 @@ def main():
 
     ensure_require(args.main)
 
-    result = subprocess.run(
-        ["hyprctl", "reload"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            ["hyprctl", "reload"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:
+        print("Could not reload Hyprland: hyprctl was not found in PATH")
+        return 1
 
     if result.returncode != 0:
         print(
