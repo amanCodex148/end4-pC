@@ -533,6 +533,7 @@ ContentPage {
                         if (newVal === Config.options.hyprland.decoration.inactiveOpacity) return
                         Config.options.hyprland.decoration.inactiveOpacity = newVal
                         HyprlandConfig.set("decoration:inactive_opacity", newVal)
+                        HyprlandConfig.syncApplicationOpacity()
                     }
                 }
             }

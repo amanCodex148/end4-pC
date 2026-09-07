@@ -134,8 +134,8 @@ def build_application_opacity(config_path: Path, output_path: Path):
     rules = decoration.get("applicationOpacityRules", [])
 
     inactive = clamp_opacity(
-        decoration.get("inactiveOpacity", 0.75),
-        0.75,
+        decoration.get("inactiveOpacity", 0.9),
+        0.9,
     )
 
     if not isinstance(rules, list):
