@@ -156,7 +156,7 @@ def build_application_opacity(config_path: Path, output_path: Path):
         data = json.loads(config_path.read_text())
     except Exception as exc:
         print(f"Could not read {config_path}: {exc}")
-        return False
+        return None
 
     decoration = (
         data.get("hyprland", {})
@@ -230,9 +230,6 @@ def build_application_opacity(config_path: Path, output_path: Path):
         "\n".join(lines) + "\n",
     )
 
-    return True
-
-
 def main():
     parser = argparse.ArgumentParser()
 
@@ -260,6 +257,9 @@ def main():
         args.config,
         args.output,
     )
+
+    if output_changed is None:
+        return 1
 
     require_changed = ensure_require(args.main)
 
