@@ -5,6 +5,9 @@ import json
 import math
 import re
 import subprocess
+import os
+import stat
+import tempfile
 from pathlib import Path
 
 
@@ -97,7 +100,32 @@ def resolve_real_class(match: str, rule_id: str, clients):
 
 def write_text(path: Path, content: str):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content)
+
+    existing_mode = (
+        stat.S_IMODE(path.stat().st_mode)
+        if path.exists()
+        else 0o644
+    )
+
+    fd, temp_name = tempfile.mkstemp(
+        dir=path.parent,
+        prefix=f".{path.name}.",
+        text=True,
+    )
+
+    try:
+        with os.fdopen(fd, "w") as temp_file:
+            temp_file.write(content)
+            temp_file.flush()
+            os.fsync(temp_file.fileno())
+
+        os.chmod(temp_name, existing_mode)
+        os.replace(temp_name, path)
+    finally:
+        try:
+            os.unlink(temp_name)
+        except FileNotFoundError:
+            pass
 
 
 def ensure_require(main_path: Path):

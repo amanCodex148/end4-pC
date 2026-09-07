@@ -633,15 +633,18 @@ ContentPage {
                                 savedRule !== null &&
                                 savedRule.enabled === true
 
-                            property int activeOpacityValue:
-                                savedRule !== null
-                                ? Math.round(
-                                    Number(savedRule.active) * 100
-                                )
-                                : Math.round(
-                                    Config.options.hyprland.decoration
-                                        .activeOpacity * 100
-                                )
+                            property int activeOpacityValue: {
+                                const rawValue = savedRule !== null
+                                    ? Number(savedRule.active) * 100
+                                    : Number(
+                                        Config.options.hyprland.decoration.activeOpacity
+                                    ) * 100
+
+                                if (!Number.isFinite(rawValue))
+                                    return 100
+
+                                return Math.max(10, Math.min(100, Math.round(rawValue)))
+                            }
 
                             RowLayout {
                                 anchors.fill: parent
