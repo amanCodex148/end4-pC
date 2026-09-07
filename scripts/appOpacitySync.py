@@ -101,6 +101,9 @@ def resolve_real_class(match: str, rule_id: str, clients):
 def write_text(path: Path, content: str):
     path.parent.mkdir(parents=True, exist_ok=True)
 
+    if path.exists() and path.read_text() == content:
+        return False
+
     existing_mode = (
         stat.S_IMODE(path.stat().st_mode)
         if path.exists()
@@ -121,6 +124,7 @@ def write_text(path: Path, content: str):
 
         os.chmod(temp_name, existing_mode)
         os.replace(temp_name, path)
+        return True
     finally:
         try:
             os.unlink(temp_name)
@@ -144,7 +148,7 @@ def ensure_require(main_path: Path):
 
     content += REQUIRE_LINE + "\n"
 
-    write_text(main_path, content)
+    return write_text(main_path, content)
 
 
 def build_application_opacity(config_path: Path, output_path: Path):
@@ -221,7 +225,7 @@ def build_application_opacity(config_path: Path, output_path: Path):
             " })"
         )
 
-    write_text(
+    return write_text(
         output_path,
         "\n".join(lines) + "\n",
     )
@@ -252,13 +256,15 @@ def main():
 
     args = parser.parse_args()
 
-    if not build_application_opacity(
+    output_changed = build_application_opacity(
         args.config,
         args.output,
-    ):
-        return 1
+    )
 
-    ensure_require(args.main)
+    require_changed = ensure_require(args.main)
+
+    if not output_changed and not require_changed:
+        return 0
 
     try:
         result = subprocess.run(
